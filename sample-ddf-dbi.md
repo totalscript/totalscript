@@ -39,10 +39,10 @@ interface DBI (repr : Type -> Type -> Type) {
 record Eval (h : Type) (x : Type) { un : h -> x }
 
 instance DBI Eval {
-  z = Eval fst
-  s [a] = Eval (a <. snd)
-  lam [f] = Eval <| a => h => f (h, a)
-  app [f] [x] = Eval <| h => f h (x h)
+  z = new Eval fst
+  s [a] = new Eval (a <. snd)
+  lam [f] = new Eval <| a => h => f (h, a)
+  app [f] [x] = new Eval <| h => f h (x h)
   ...
 }
 

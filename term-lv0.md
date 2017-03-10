@@ -1,5 +1,12 @@
 ## Term language, level 0
 
+### Lexical
+
+- Names can contain hyphens (`-`).
+- Other literals follow common languages.
+- Strings are encoded in Unicode code points. Byte sequence is `Bytes`.
+- Boolean: `&&`, `||`, `!` vs Proposition: `\/`, `/\`, `~`.
+
 ### Notation for types
 
 - Sorts: `Type`, `Prop` and `Interface`. All of them are `Kind`. `Kind` is `Kind2`, `Kind2` is `Kind3`, ...
@@ -30,8 +37,29 @@
 - `<|` and `|>` for piping, while `<.` and `.>` for composition.
 - Pattern matching : `match n { when Z : Z; when (S x) : S <| S <| x + x }`.
   - Also Haskell-style definitions.
+  - Pattern for records: `[a, b, c, d]` (positional) or `[x = a, y = b]` (nominal).
+  - Quote whole argument: `(list | Cons head rear)`.
 - Do blocks : `do {x <- monad; y = plain; monad}`.
-- Tactic blocks : `proof { x <- intro; exact x }`, similar to `do` but with a more complex translation rule.
+  - `do {x <- m; y}` = `m >>= (x => y)`
+  - `do {x; y}` = `m >>= (_ => y)`
+  - `do {x}` = `x`
+  - `do {x = v; y}` = `let x = v in do { y }`
+- Tactic blocks : `proof { x <- intro; exact x }`, similar to `do` but more complex (not discussed here).
+
+### Notation for modules
+
+- Importing : `import pattern from "location"`.
+  - Import members : `import [Ring, Group] from "algebra"`.
+  - Import all public members: `import * from "algebra"`.
+  - Import as whole : `import as Algebra from "algebra"`.
+  - Location → Resolved in the Node.js manner.
+- Exporting :
+  - Export type : `export x : A.`
+  - Export type and definition : `export public x : A`.
+  - Export other modules: `export as M from "loc"`, `export [a, b, c] from "loc"` , `export * from "loc"`.
+- Totality markers : `theorem`, `total` and `lemma` would force a declaration total.
+- Operators : Declared as an alias of a term, `operator * 500 left = multiply`; `operator - prefix = negate`.
+  - These are NON-operators: `->`, `<-`, `=>`, `><`, `<|`, `|>`, `<.`, `.>`, `:`, `=`, `;` and `|-`.
 
 ### Inductive declaration
 
@@ -39,6 +67,7 @@
 inductive Equal : {t : Type} -> t -> t -> Prop {
     Refl : t -> Equal t t
 }
+operator === 300 non-assoc = Equal
 -- Eliminator is defined as Equal.$elim
 ```
 
