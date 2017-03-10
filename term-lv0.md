@@ -35,6 +35,7 @@
   - If `a` is a record type → return extractor, i.e. `x => x.b`.
   - If `a` is an interface → return overloaded function, i.e. `{t : Type} => {m : a t} => (x : t) => m.b x`.
 - `<|` and `|>` for piping, while `<.` and `.>` for composition.
+- Explicit instantiate : `@{terms}`, `@{name = term; name = term}`.
 - Pattern matching : `match n { when Z : Z; when (S x) : S <| S <| x + x }`.
   - Also Haskell-style definitions.
   - Pattern for records: `[a, b, c, d]` (positional) or `[x = a, y = b]` (nominal).
@@ -101,9 +102,8 @@ instance Monad Identity {
 ```
 -- canonical declaration
 record VerifiedFunctor : (f : Type -> Type) -> {Functor f} -> Interface {
-    identity : '(a : Type) -> (x : f a) -> Functor.map id x === id x
-    dist     : '(a : Type) -> '(b : Type)
-               -> (x : f a) -> (g1, g2: a -> b)
+    identity : {a : Type} -> (x : f a) -> Functor.map id x === id x
+    dist     : {a, b : Type} -> (x : f a) -> (g1, g2: a -> b)
                -> map (g2 <. g1) x === (map g2 <. map g1) x
 }
 -- convinent declaration
@@ -134,9 +134,9 @@ tensorMult : {Num a} -> Matrix h1 w1 a -> Matrix h2 w2 a -> Matrix (h1 * h2) (w1
 tensorMult m1 m2 = zipwith (\&\) (step1 m1 m2) (step2 m1 m2)
 where {
     step1 : Matrix h1 w1 a -> Matrix h2 w2 a -> Matrix (h1 * h2) w1 a
-    step1 {h2} m1 m2 = concat <| map (replicate h2) m1
+    step1 @{h2} m1 m2 = concat <| map (replicate h2) m1
     step2 : Matrix h1 w1 a -> Matrix h2 w2 a -> Matrix (h1 * h2) w2 a
-    step2 {h1} m1 m2 = concat <| replicate h1 m2
+    step2 @{h1} m1 m2 = concat <| replicate h1 m2
 }
 ```
 
