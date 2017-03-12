@@ -53,7 +53,7 @@ mutual
 		-- Variable
 		EVar   : String -> Exp
 		-- Universe
-		EType  : Exp
+		EType  : Nat -> Exp
 		-- Construction
 		ECon   : String -> List Exp -> Exp
 		-- Case analysis
@@ -93,7 +93,7 @@ mutual
 	showExps = hcat . map showExp1
 
 	showExp1 : Exp -> String
-	showExp1 EType = "U"
+	showExp1 (EType n) = "U" ++ show n
 	showExp1 (ECon c []) = c
 	showExp1 (EVar x) = x
 	showExp1 u@(ECase _ _) = showExp u
@@ -105,22 +105,24 @@ mutual
 
 	showEnv : Env -> String
 	showEnv EvEmpty            = ""
-	showEnv (EvPair env (x,u)) = parens $ showEnv1 env ++ showExp u
+	showEnv (EvPair env (x,u)) = parens $ showEnv1 env ++ x ++ ":" ++ showExp u
 	showEnv (EvDef env xas)    = showEnv env
 
 	showEnv1 : Env -> String
 	showEnv1 EvEmpty            = ""
-	showEnv1 (EvPair env (x,u)) = showEnv1 env ++ showExp u ++ ", "
+	showEnv1 (EvPair env (x,u)) = showEnv1 env ++ x ++ ":" ++ showExp u ++ ", "
 	showEnv1 (EvDef env xas)    = showEnv env
 
 	showExp : Exp -> String
 	showExp e = case e of
 		EApp e0 e1 => showExp e0 ++ " " ++ showExp1 e1
-		EPi e0 e1 => "Pi" ++ showExps [e0,e1]
+		EPi e0 (EComp (ELam x e1) env) => "(" ++ show x ++ " : " ++ showExp e0 ++ ") ->" ++ showExp e1 ++ "@{" ++ showEnv env ++ "}"
+		EPi e0 (ELam x e1) => "(" ++ show x ++ " : " ++ showExp e0 ++ ") ->" ++ showExp e1
+		EPi e0 e1 => "Pi{" ++ showExps [e0,e1] ++ "}"
 		ELam x e => "\\" ++ x ++ " -> " ++ showExp e
 		EDef d e => showExp e ++ " where" <//> showDef d
 		EVar x => x
-		EType => "U"
+		EType n => "U" ++ show n
 		ECon c es => c ++ " " ++ showExps es
 		ECase (n,str) _ => str ++ show n
 		ESum (_,str) _ => str
@@ -136,7 +138,7 @@ Show Exp where
 
 -- De Bruijn levels
 genName : Int -> String
-genName n = "X" ++ show n
+genName n = "$" ++ show n
 
 mkVar : Int -> Exp
 mkVar k = EVar (genName k)
@@ -144,23 +146,23 @@ mkVar k = EVar (genName k)
 mutual
 	Eq Env where
 		EvEmpty == EvEmpty = True
-		(EvPair e (s, v)) == (EvPair e' (s', v')) = (e == e') && (s == s') && (v == v')
-		(EvDef e d) == (EvDef e' d') = (e == e') && (d == d')
+		(EvPair e (s, v)) == (EvPair e' (s', v')) = assert_total $  (e == e') && (s == s') && (v == v')
+		(EvDef e d) == (EvDef e' d') = assert_total $ (e == e') && (d == d')
 		e == f = False
 
 	Eq Exp where
-		(EComp f e) == (EComp g h) = (f == g) && (e == h)
-		(EApp f x) == (EApp g y)   = (f == g) && (x == y)
-		(EPi t x) == (EPi t' x')   = (t == t') && (x == x')
-		(ELam n e) == (ELam n' e') = (n == n') && (e == e')
-		(EDef n e) == (EDef n' e') = (n == n') && (e == e')
-		(EVar x) == (EVar y)       = x == y
-		(EType) == (EType)         = True
-		(ECon n e) == (ECon n' e') = (n == n') && (e == e')
-		(ECase n e) == (ECase n' e') = (n == n') && (e == e')
-		(ESum n e) == (ESum n' e') = (n == n') && (e == e')
-		(EUndef e) == (EUndef e')  = (e == e')
-		(EPrim n e) == (EPrim n' e') = (n == n') && (e == e')
+		(EComp f e) == (EComp g h)   = assert_total $ (f == g) && (e == h)
+		(EApp f x) == (EApp g y)     = (f == g) && (x == y)
+		(EPi t x) == (EPi t' x')     = (t == t') && (x == x')
+		(ELam n e) == (ELam n' e')   = (n == n') && (e == e')
+		(EDef n e) == (EDef n' e')   = assert_total $ (n == n') && (e == e')
+		(EVar x) == (EVar y)         = x == y
+		(EType m) == (EType n)       = m == n
+		(ECon n e) == (ECon n' e')   = assert_total $ (n == n') && (e == e')
+		(ECase n e) == (ECase n' e') = assert_total $ (n == n') && (e == e')
+		(ESum n e) == (ESum n' e')   = assert_total $ (n == n') && (e == e')
+		(EUndef e) == (EUndef e')    = assert_total $ (e == e')
+		(EPrim n e) == (EPrim n' e') = assert_total $ (n == n') && (e == e')
 		e1 == e2 = False
 
 record TEnv where
@@ -211,7 +213,7 @@ mutual
 		pure $ ECon c ts'
 	--pure $ ECon c (map (`eval` s) ts)
 	eval (EVar k)     s = getE k s
-	eval EType        _ = pure $ EType
+	eval (EType n)    _ = pure $ (EType n)
 	eval t            s = pure $ EComp t s
 
 	evalList : List Exp -> Env -> TC (List Val)
@@ -297,6 +299,18 @@ checkLocally fme m = do
 	put e1
 	pure r
 
+mapE : List a -> (a -> Eff b e) -> Eff (List b) e
+mapE [] f = pure []
+mapE (x :: xs) f = do
+	x1 <- f x
+	xs1 <- mapE xs f
+	pure (x1 :: xs1)
+
+seqE : List a -> (a -> Eff () e) -> Eff () e
+seqE xs f = do
+	mapE xs f
+	pure ()
+
 -- unification -- we use simple unification for now
 infixl 5 =?=
 (=?=) : Exp -> Exp -> TC ()
@@ -310,25 +324,15 @@ mutual
 		putStrLn $ "Checking definition of " ++ show (map fst xes)
 		checkTele xas
 		rho <- getEnv
-		checkLocally (addTele xas) $ checks rho xas (map snd xes)
+		result <- checkLocally (addTele xas) $ checks rho xas (map snd xes)
+		putStrLn $ "Defined" ++ show xas
+		pure result
 
 	checkTele : Telescope -> TC ()
 	checkTele [] = pure ()
 	checkTele ((x, a) :: xas) = do
 		checkType a
 		checkLocally (addType (x, a)) $ checkTele xas
-
-	mapE : List a -> (a -> Eff b e) -> Eff (List b) e
-	mapE [] f = pure []
-	mapE (x :: xs) f = do
-		x1 <- f x
-		xs1 <- mapE xs f
-		pure (x1 :: xs1)
-
-	seqE : List a -> (a -> Eff () e) -> Eff () e
-	seqE xs f = do
-		mapE xs f
-		pure ()
 
 	||| check whether expression E is in type T
 	check : Val -> Exp -> TC ()
@@ -340,10 +344,10 @@ mutual
 		check1 a (ECon c es) = do
 			(bs, nu) <- getLblType c a
 			checks nu bs es
-		check1 EType (EPi a (ELam x b)) = do
-			check EType a
-			checkLocally (addType (x, a)) $ check EType b
-		check1 EType (ESum _ bs) = do
+		check1 u@(EType n) (EPi a (ELam x b)) = do
+			check u a
+			checkLocally (addType (x, a)) $ check u b
+		check1 u@(EType n) (ESum _ bs) = do
 			seqE bs $ \(_, as) => checkTele as
 		check1 t@(EPi (EComp (ESum _ cas) nu) f) e@(ECase _ ces) = do
 			if (map fst ces == map fst cas)
@@ -363,20 +367,19 @@ mutual
 			r2 <- reifyExp k a
 			r1 =?= r2
 
-	checkTs : List (Pair String Exp) -> TC ()
-	checkTs [] = pure ()
-	checkTs ((x,a)::xas) = do
-		checkType a
-		checkLocally (addType (x,a)) $ checkTs xas
-
-	checkType : Exp -> TC ()
-	checkType EType = pure ()
+	||| checkType : T is a valid type in universe N
+	||| returns : universe number
+	checkType : Exp -> TC Nat
+	checkType (EType n) = pure n
 	checkType (EPi a (ELam x b)) = do
-		checkType a
-		checkLocally (addType (x, a)) $ checkType b
+		p <- checkType a
+		q <- checkLocally (addType (x, a)) $ checkType b
+		pure $ max p q
 	checkType t = do
 		u' <- infer t
-		u' =?= EType
+		case u' of
+			EType n => pure n
+			otherwise => raise $ "Type of " ++ show t ++ " is not a universe."
 
 	checkBranch : Pair Telescope Env -> Val -> Branch -> TC ()
 	checkBranch (xas, nu) f (c, (xs, e)) = do
@@ -386,6 +389,7 @@ mutual
 		checkLocally (addBranch (zip xs us) (xas, nu)) $ check !(app f (ECon c us)) e
 
 	infer : Exp -> TC Exp
+	infer (EType n) = pure $ EType (n + 1)
 	infer (EVar n) = do
 		gam <- getContext
 		case (lookup n gam) of
@@ -439,9 +443,10 @@ mutual
 	reifyEnv k (EvDef r ts) = reifyEnv k r
 
 one : Exp
-one = EDef ([("Nat", EType)], [("Nat", ESum (0, "?") [("Z", []), ("S", [("pred", EVar "Nat")])])])
+one = EDef ([("Nat", EType 0)], [("Nat", ESum (0, "Nat") [("Z", []), ("S", [("pred", EVar "Nat")])])])
 	$ EDef ([("zero", EVar "Nat")], [("zero", ECon "Z" [])])
 	$ EDef ([("one", EVar "Nat")], [("one", ECon "S" [ECon "Z" []])])
-	$ EVar "one"
+	$ EDef ([("id", EPi (EType 0) $ ELam "a" $ EPi (EVar "a") $ ELam "_" (EVar "a"))], [("id", ELam "a" $ ELam "x" $ EVar "x")])
+	$ EApp (EApp (EVar "id") (EVar "Nat")) (EVar "one")
 
 -- it should infer to a sum type
