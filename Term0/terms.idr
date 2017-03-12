@@ -112,18 +112,18 @@ mutual
 
 	showExp : Exp -> String
 	showExp e = case e of
-		EApp e0 e1 => showExp e0 <//> showExp1 e1
-		EPi e0 e1 => "Pi" <//> showExps [e0,e1]
-		ELam x e => "\\" ++ x ++ "->" <//> showExp e
-		EDef d e => showExp e <//> "where" <//> showDef d
+		EApp e0 e1 => showExp e0 ++ " " ++ showExp1 e1
+		EPi e0 e1 => "Pi" ++ showExps [e0,e1]
+		ELam x e => "\\" ++ x ++ " -> " ++ showExp e
+		EDef d e => showExp e ++ " where" <//> showDef d
 		EVar x => x
 		EUniv => "U"
-		ECon c es => c <//> showExps es
+		ECon c es => c ++ " " ++ showExps es
 		ECase (n,str) _ => str ++ show n
 		ESum (_,str) _ => str
 		EUndef (n,str) => str ++ show n
-		EPrim (n,str) es => str ++ show n <//> showExps es
-		EComp e env => showExp1 e <//> showEnv env
+		EPrim (n,str) es => "Prim{" ++ str ++ show n ++ "}" ++ showExps es
+		EComp e env => showExp1 e ++ "@{" ++ showEnv env ++ "}"
 	
 	showDef : Def -> String
 	showDef (_,xts) = vcat (map (\(x,t) => x ++ " = " ++ showExp t) xts)
@@ -297,12 +297,12 @@ checkLocally fme m = do
 -- unification -- we use simple unification for now
 infixl 5 =?=
 (=?=) : Exp -> Exp -> TC ()
-s1 =?= s2 = if(s1 == s2) then pure () else raise "Cannot commute"
+s1 =?= s2 = if(s1 == s2) then pure () else raise $ "Cannot commute " ++ s1 ++ " with " ++ s2
 
 mutual
 	checkDef : Def -> TC ()
 	checkDef (xas, xes) = do
-		putStrLn $ "Checking definition " ++ show (map fst xes)
+		putStrLn $ "Checking definition of " ++ show (map fst xes)
 		checkTele xas
 		rho <- getEnv
 		checkLocally (addTele xas) $ checks (xas, rho) (map snd xes)
@@ -334,10 +334,10 @@ mutual
 		checkLocally (addType (x, a)) $ check EUniv b
 	check EUniv (ESum _ bs) = do
 		seqE bs $ \(_, as) => checkTele as
-	check (EPi (EComp (ESum _ cas) nu) f) (ECase _ ces) = do
+	check t@(EPi (EComp (ESum _ cas) nu) f) e@(ECase _ ces) = do
 		if (map fst ces == map fst cas)
 			then seqE (zip ces cas) $ \(brc, (_, as)) => checkBranch (as, nu) f brc
-			else raise "case branches does not match the data type"
+			else raise $ "case branches " ++ e ++ " does not match the data type " ++ t
 	check (EPi a f) (ELam x t) = do
 		var <- getFresh
 		checkLocally (addTypeVal (x, a)) $ check !(app f var) t
@@ -377,7 +377,7 @@ mutual
 	infer (EDef d t) = do
 		checkDef d
 		checkLocally (addDef d) $ infer t
-	infer _ = raise "Cannot infer"
+	infer e = raise $ "Cannot infer type of " ++ show e
 
 	checks : Pair Telescope Env -> List Exp -> TC ()
 	checks _ [] = pure ()
