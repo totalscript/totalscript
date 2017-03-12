@@ -42,6 +42,9 @@ mutual
 		-- Application
 		EApp   : Exp -> Exp -> Exp
 		-- Pi type
+		-- Pi T (Lam x T)
+		-- or
+		-- Pi T (EComp (ELam x t) e)
 		EPi    : Exp -> Exp -> Exp
 		-- Abstraction
 		ELam   : String -> Exp -> Exp
@@ -50,7 +53,7 @@ mutual
 		-- Variable
 		EVar   : String -> Exp
 		-- Universe
-		EUniv  : Exp
+		EType  : Exp
 		-- Construction
 		ECon   : String -> List Exp -> Exp
 		-- Case analysis
@@ -60,7 +63,7 @@ mutual
 		-- Undefined
 		EUndef : Prim -> Exp
 		-- used for reification
-		EPrim : Prim -> List Exp -> Exp
+		EPrim  : Prim -> List Exp -> Exp
 	
 	data Env =
 		EvEmpty
@@ -90,7 +93,7 @@ mutual
 	showExps = hcat . map showExp1
 
 	showExp1 : Exp -> String
-	showExp1 EUniv = "U"
+	showExp1 EType = "U"
 	showExp1 (ECon c []) = c
 	showExp1 (EVar x) = x
 	showExp1 u@(ECase _ _) = showExp u
@@ -117,7 +120,7 @@ mutual
 		ELam x e => "\\" ++ x ++ " -> " ++ showExp e
 		EDef d e => showExp e ++ " where" <//> showDef d
 		EVar x => x
-		EUniv => "U"
+		EType => "U"
 		ECon c es => c ++ " " ++ showExps es
 		ECase (n,str) _ => str ++ show n
 		ESum (_,str) _ => str
@@ -152,7 +155,7 @@ mutual
 		(ELam n e) == (ELam n' e') = (n == n') && (e == e')
 		(EDef n e) == (EDef n' e') = (n == n') && (e == e')
 		(EVar x) == (EVar y)       = x == y
-		(EUniv) == (EUniv)         = True
+		(EType) == (EType)         = True
 		(ECon n e) == (ECon n' e') = (n == n') && (e == e')
 		(ECase n e) == (ECase n' e') = (n == n') && (e == e')
 		(ESum n e) == (ESum n' e') = (n == n') && (e == e')
@@ -208,7 +211,7 @@ mutual
 		pure $ ECon c ts'
 	--pure $ ECon c (map (`eval` s) ts)
 	eval (EVar k)     s = getE k s
-	eval EUniv        _ = pure $ EUniv
+	eval EType        _ = pure $ EType
 	eval t            s = pure $ EComp t s
 
 	evalList : List Exp -> Env -> TC (List Val)
@@ -307,12 +310,12 @@ mutual
 		putStrLn $ "Checking definition of " ++ show (map fst xes)
 		checkTele xas
 		rho <- getEnv
-		checkLocally (addTele xas) $ checks (xas, rho) (map snd xes)
+		checkLocally (addTele xas) $ checks rho xas (map snd xes)
 
 	checkTele : Telescope -> TC ()
 	checkTele [] = pure ()
 	checkTele ((x, a) :: xas) = do
-		check EUniv a
+		checkType a
 		checkLocally (addType (x, a)) $ checkTele xas
 
 	mapE : List a -> (a -> Eff b e) -> Eff (List b) e
@@ -327,32 +330,53 @@ mutual
 		mapE xs f
 		pure ()
 
+	||| check whether expression E is in type T
 	check : Val -> Exp -> TC ()
-	check a (ECon c es) = do
-		(bs, nu) <- getLblType c a
-		checks (bs, nu) es
-	check EUniv (EPi a (ELam x b)) = do
-		check EUniv a
-		checkLocally (addType (x, a)) $ check EUniv b
-	check EUniv (ESum _ bs) = do
-		seqE bs $ \(_, as) => checkTele as
-	check t@(EPi (EComp (ESum _ cas) nu) f) e@(ECase _ ces) = do
-		if (map fst ces == map fst cas)
-			then seqE (zip ces cas) $ \(brc, (_, as)) => checkBranch (as, nu) f brc
-			else raise $ "case branches " ++ show e ++ " does not match the data type " ++ show t
-	check (EPi a f) (ELam x t) = do
-		var <- getFresh
-		checkLocally (addTypeVal (x, a)) $ check !(app f var) t
-	check a (EDef d e) = do
-		checkDef d
-		checkLocally (addDef d) $ check a e
-	check a (EUndef _) = pure ()
-	check a t = do
-		k <- getIndex
-		t1 <- infer t
-		r1 <- reifyExp k t1
-		r2 <- reifyExp k a
-		r1 =?= r2
+	check t e = do
+		putStrLn $ "Checking " ++ show e ++ " with " ++ show t
+		check1 t e
+	where
+		check1 : Val -> Exp -> TC ()
+		check1 a (ECon c es) = do
+			(bs, nu) <- getLblType c a
+			checks nu bs es
+		check1 EType (EPi a (ELam x b)) = do
+			check EType a
+			checkLocally (addType (x, a)) $ check EType b
+		check1 EType (ESum _ bs) = do
+			seqE bs $ \(_, as) => checkTele as
+		check1 t@(EPi (EComp (ESum _ cas) nu) f) e@(ECase _ ces) = do
+			if (map fst ces == map fst cas)
+				then seqE (zip ces cas) $ \(brc, (_, as)) => checkBranch (as, nu) f brc
+				else raise $ "case branches " ++ show e ++ " does not match the data type " ++ show t
+		check1 (EPi a f) (ELam x t) = do
+			var <- getFresh
+			checkLocally (addTypeVal (x, a)) $ check !(app f var) t
+		check1 a (EDef d e) = do
+			checkDef d
+			checkLocally (addDef d) $ check a e
+		check1 a (EUndef _) = pure ()
+		check1 a t = do
+			k <- getIndex
+			t1 <- infer t
+			r1 <- reifyExp k t1
+			r2 <- reifyExp k a
+			r1 =?= r2
+
+	checkTs : List (Pair String Exp) -> TC ()
+	checkTs [] = pure ()
+	checkTs ((x,a)::xas) = do
+		checkType a
+		checkLocally (addType (x,a)) $ checkTs xas
+
+	checkType : Exp -> TC ()
+	checkType EType = pure ()
+	checkType (EPi a (ELam x b)) = do
+		checkType a
+		checkLocally (addType (x, a)) $ checkType b
+	checkType t = do
+		u' <- infer t
+		u' =?= EType
 
 	checkBranch : Pair Telescope Env -> Val -> Branch -> TC ()
 	checkBranch (xas, nu) f (c, (xs, e)) = do
@@ -362,7 +386,6 @@ mutual
 		checkLocally (addBranch (zip xs us) (xas, nu)) $ check !(app f (ECon c us)) e
 
 	infer : Exp -> TC Exp
-	infer EUniv = pure EUniv -- really?
 	infer (EVar n) = do
 		gam <- getContext
 		case (lookup n gam) of
@@ -381,19 +404,19 @@ mutual
 		checkLocally (addDef d) $ infer t
 	infer e = raise $ "Cannot infer type of " ++ show e
 
-	checks : Pair Telescope Env -> List Exp -> TC ()
-	checks _ [] = pure ()
-	checks ((x, a)::xas, nu) (e::es) = do
+	checks : Env -> Telescope -> List Exp -> TC ()
+	checks _ _ [] = pure ()
+	checks nu ((x, a)::xas) (e::es) = do
 		a' <- eval a nu
 		check a' e
 		rho <- getEnv
 		e' <- eval e rho
-		checks (xas, EvPair nu (x, e')) es
-	checks _ _ = raise "CHECKS"
+		checks (EvPair nu (x, e')) xas es
+	checks _ _ _ = raise "CHECKS"
 
 	-- Reification of a value to an expression
 	reifyExp : Int -> Val -> TC Exp
-	reifyExp _ EUniv = pure EUniv
+	reifyExp _ EType = pure EType
 	reifyExp k (EComp (ELam x t) r) = do
 		t' <- eval t (EvPair r (x, mkVar k))
 		r' <- reifyExp (k + 1) t'
@@ -416,7 +439,7 @@ mutual
 	reifyEnv k (EvDef r ts) = reifyEnv k r
 
 one : Exp
-one = EDef ([("Nat", EUniv)], [("Nat", ESum (0, "?") [("Z", []), ("S", [("pred", EVar "Nat")])])])
+one = EDef ([("Nat", EType)], [("Nat", ESum (0, "?") [("Z", []), ("S", [("pred", EVar "Nat")])])])
 	$ EDef ([("zero", EVar "Nat")], [("zero", ECon "Z" [])])
 	$ EDef ([("one", EVar "Nat")], [("one", ECon "S" [ECon "Z" []])])
 	$ EVar "one"
