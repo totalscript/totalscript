@@ -297,7 +297,9 @@ checkLocally fme m = do
 -- unification -- we use simple unification for now
 infixl 5 =?=
 (=?=) : Exp -> Exp -> TC ()
-s1 =?= s2 = if(s1 == s2) then pure () else raise $ "Cannot commute " ++ s1 ++ " with " ++ s2
+s1 =?= s2 = if(s1 == s2)
+	then pure ()
+	else raise $ "Cannot commute " ++ show s1 ++ " with " ++ show s2
 
 mutual
 	checkDef : Def -> TC ()
@@ -337,7 +339,7 @@ mutual
 	check t@(EPi (EComp (ESum _ cas) nu) f) e@(ECase _ ces) = do
 		if (map fst ces == map fst cas)
 			then seqE (zip ces cas) $ \(brc, (_, as)) => checkBranch (as, nu) f brc
-			else raise $ "case branches " ++ e ++ " does not match the data type " ++ t
+			else raise $ "case branches " ++ show e ++ " does not match the data type " ++ show t
 	check (EPi a f) (ELam x t) = do
 		var <- getFresh
 		checkLocally (addTypeVal (x, a)) $ check !(app f var) t
