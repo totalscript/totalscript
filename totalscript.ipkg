@@ -1,0 +1,3 @@
+package totalscript
+
+opts = "-p effects"
