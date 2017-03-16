@@ -1,10 +1,23 @@
 ## Term language, level 0
 
+| Category         | Type                  | Introduction  | Elimination                |
+| ---------------- | --------------------- | ------------- | -------------------------- |
+| Pi (Explicit)    | `(x : a) -> y`        | `a => b`      | `a b`                      |
+| Sigma (Explicit) | `(x : a) >< b`        | `(a, b)`      | `%split m %| (a, b) =>`    |
+| Pi (Implicit)    | `{x : a} -> y`        | `{a} => b`    | `a @{b}`                   |
+| Sigma (Implicit) | `{x : a} >< b`        | `({a}, b)`    | `%isplit m %| (a, b) =>`   |
+| Finite           | `%Finite {%a, %b, …}` | `%a`, `%b`, … | `%case m %| { %a => …; …}` |
+| Equality (?)     | `a =%= b`             | `%refl a`     | `%eqelim m %| a => …`      |
+| Recursion (?)    | `%Rec a`              | `%fold x`     | `%unfold t %| x =>`        |
+| Laziness (?)     | `%Inf a`              | `%delay x`    | `%force t %| x =>`         |
+
+---
+
 Main ideas:
 
 1. Pi : `(x : T) -> y` or `{x : T} -> y`; Lambda: `x => e`.
 
-2. Sigma : `(x : T) >< y` or `{x : T} >< y`; Pair: `x => e`.
+2. Sigma : `(x : T) >< y` or `{x : T} >< y`; Pair: `(x, e)`.
 
 3. Finite types for tagging : `%Finite {%tag1, %tag2, ...}`.
 
