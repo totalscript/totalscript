@@ -10,74 +10,59 @@
 module TermZero.Value
 
 import TermZero.Syntax
-import TermZero.Environment
+import Data.SortedMap
 
-data Boxed : Type where
-	MkBoxed : Closure Term -> Boxed
+public export
+data Judgement : Type -> Type where
+	BType  : b -> Judgement b
+	BValue : b -> Judgement b
+	BHole  : b -> Judgement b
+	BGuess : b -> Judgement b
 
-Eq Boxed where
-	(MkBoxed a) == (MkBoxed b) = a == b
+public export
+Environment : Type -> Type
+Environment b = SortedMap Index (Judgement b)
 
-CLOSURE Boxed where
-	getContext (MkBoxed c) = getContext c
-	putContext (MkBoxed c) = MkBoxed . putContext c
+public export
+Context : Type
+Context = List $ Pair Name Index
+
+public export
+Closure : Type -> Type
+Closure a = Pair a Context
 
 mutual
-	data Value = VNeutral Neutral
-			| VUniv Int
-			| VQuant Quantifier (Closure $ Pair EType (Bind EType))
-			| VLambda     (Bind (Closure Term))
-			| VILambda    (Bind (Closure Term))
-			| VPair       (Closure (Pair Term Term))
-			| VIPair      (Closure (Pair Term Term))
-			| VEnum       (List Label)
-			| VLabel       Label
-			| VLazy       (Closure EType)
-			| VDelay       Boxed
-			| VRec        (Closure EType)
-			| VFold       (Closure Term)
-			| VEqual      (Closure (Pair Term Term))
-			| VRefl       (Closure Term)
+	-- WHNF value of TTS
+	public export
+	data Value  = VVar Index
+				| VLit Literal
+				| VUniv Int
+				| VQ (Quantifier $ Closure Value) (Closure Value)
+				| VApp JImplicitiness Value (Closure Value)
+				| VPair JImplicitiness Value (Closure Value)
+				| VFinite (List Label)
+				| VLabel Label
+				| VInf Value
+				| VDelay Value
+				| VRec Value
+				| VFold Value
+				| VEquality Value Value
+				| VRefl Value
 	
-
-	data Neutral = NVar Index
-				| NUndefined Index
-				| NApp    Neutral (Closure Term)
-				| NInst   Neutral (Closure Term)
-				| NCase   Neutral (Closure $ List $ Pair Label Term)
-				| NSplit  Neutral (Bind (Bind (Closure Term)))
-				| NISplit Neutral (Bind (Bind (Closure Term)))
-				| NForce  Neutral
-				| NUnfold Neutral (Bind (Closure Term))
-				| NEqElim Neutral (Bind (Closure Term))
-
+	export
 	Eq Value where
-		(VNeutral a0) == (VNeutral a1) = a0 == a1
+		(VVar a0) == (VVar a1) = a0 == a1
+		(VLit a0) == (VLit a1) = a0 == a1
 		(VUniv a0) == (VUniv a1) = a0 == a1
-		(VQuant a0 b0) == (VQuant a1 b1) = a0 == a1 && b0 == b1
-		(VLambda a0) == (VLambda a1) = a0 == a1
-		(VILambda a0) == (VILambda a1) = a0 == a1
-		(VPair a0) == (VPair a1) = a0 == a1
-		(VIPair a0) == (VIPair a1) = a0 == a1
-		(VEnum a0) == (VEnum a1) = a0 == a1
+		(VQ a0 b0) == (VQ a1 b1) = a0 == a1 && b0 == b1
+		(VApp a0 b0 c0) == (VApp a1 b1 c1) = a0 == a1 && b0 == b1 && c0 == c1
+		(VPair a0 b0 c0) == (VPair a1 b1 c1) = a0 == a1 && b0 == b1 && c0 == c1
+		(VFinite a0) == (VFinite a1) = a0 == a1
 		(VLabel a0) == (VLabel a1) = a0 == a1
-		(VLazy a0) == (VLazy a1) = a0 == a1
+		(VInf a0) == (VInf a1) = a0 == a1
 		(VDelay a0) == (VDelay a1) = a0 == a1
 		(VRec a0) == (VRec a1) = a0 == a1
 		(VFold a0) == (VFold a1) = a0 == a1
-		(VEqual a0) == (VEqual a1) = a0 == a1
+		(VEquality a0 b0) == (VEquality a1 b1) = a0 == a1 && b0 == b1
 		(VRefl a0) == (VRefl a1) = a0 == a1
-		_ == _ = False
-	
-	Eq Neutral where
-		(NVar a0) == (NVar a1) = a0 == a1
-		(NUndefined a0) == (NUndefined a1) = a0 == a1
-		(NApp a0 b0) == (NApp a1 b1) = a0 == a1 && b0 == b1
-		(NInst a0 b0) == (NInst a1 b1) = a0 == a1 && b0 == b1
-		(NCase a0 b0) == (NCase a1 b1) = a0 == a1 && b0 == b1
-		(NSplit a0 b0) == (NSplit a1 b1) = a0 == a1 && b0 == b1
-		(NISplit a0 b0) == (NISplit a1 b1) = a0 == a1 && b0 == b1
-		(NForce a0) == (NForce a1) = a0 == a1
-		(NUnfold a0 b0) == (NUnfold a1 b1) = a0 == a1 && b0 == b1
-		(NEqElim a0 b0) == (NEqElim a1 b1) = a0 == a1 && b0 == b1
 		_ == _ = False
