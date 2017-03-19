@@ -78,8 +78,9 @@ mutual
 	public export
 	data Term   = EVar      Location Name                         -- variables
 				| ELit      Location Literal                      -- literals
-				| ELet      Location Prog Term                    -- letrec :   let G in t ; G is a program, i.e. a sequence of delcarations x : T and possibly recursive definitions x = t
+				| ELet      Location Prog Term                    -- letrec
 				| EUniv     Location Int                          -- universes
+				-- Sigma and Pi
 				| EQ        Location (Quantifier Term) Term       -- quantified
 				| EApp      JImplicitiness Term Term              -- application : t u / t {u}
 				| EPair     Location JImplicitiness Term Term     -- pairs : (t,u) / ({t}, u)
@@ -160,4 +161,3 @@ GetLoc Term where
 	getLoc (EEqElim l _ _) = l
 	getLoc (ERefl l _) = l
 	getLoc (EHole l _) = l
-	
