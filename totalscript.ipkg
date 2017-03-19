@@ -1,3 +1,4 @@
 package totalscript
 
-opts = "-p effects"
+sourcedir  = src
+opts       = "-p effects -p contrib"
