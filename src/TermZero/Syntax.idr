@@ -58,27 +58,27 @@ mutual
 	data Term   = EVar      Location Name                         -- variables
 				| ELet      Location Prog Term                    -- letrec :   let G in t ; G is a program, i.e. a sequence of delcarations x : T and possibly recursive definitions x = t
 				| EUniv     Location Int                          -- universes
-				| EQuant    Location Quantifier (Term, Bind Term) -- quantifiers  : Q Pi (S,(x,T))  means  (x : S) -> T , Q Sigma (S,(x,T))  means  (x : S) *  T
+				| EQuant    Location Quantifier (Term, Bind Term) -- quantified
 				| ELam      Location (Bind Term)                  -- x => t
 				| EILam     Location (Bind Term)                  -- {x} => t
-				| EApp      Term Term                             -- application :   t u
-				| EInst     Term Term                             -- application :   t {u}
-				| EPair     Location Term Term                    -- pairs :   (t,u)
-				| EIPair    Location Term Term                    -- pairs :   ({t},u)
-				| ESplit    Location Term (Bind (Bind Term))      -- Sigma elimination :   split t |% x => y => u
-				| EISplit   Location Term (Bind (Bind Term))      -- Sigma elimination :   split t |% x => y => u
+				| EApp      Term Term                             -- application : t u
+				| EInst     Term Term                             -- application : t {u}
+				| EPair     Location Term Term                    -- pairs : (t,u)
+				| EIPair    Location Term Term                    -- pairs : ({t},u)
+				| ESplit    Location Term (Bind (Bind Term))      -- Sigma elim : split t |% x => y => u
+				| EISplit   Location Term (Bind (Bind Term))      -- Sigma elim : split t |% x => y => u
 				| EEnum     Location (List Label)                 -- enumerations (finite types)
 				| ELabel    Location Label                        -- labels
 				| ECase     Location Term (List $ Pair Label Term)-- case t of { L1 => u1 | ... | L1 => un }
-				| ELift     Location Term                         -- lifting :  ^T
-				| EBox      Location Term                         -- box :   [t]
-				| EForce    Location Term                         -- box opener :   !t
+				| ELazy     Location Term                         -- Laziness
+				| EDelay    Location Term                         -- delay (box) : %delay t
+				| EForce    Location Term                         -- box opener : %force t
 				| ERec      Location Term                         -- Rec T
 				| EFold     Location Term                         -- fold t
 				| EUnfold   Location Term (Bind Term)             -- unfold t |% x => u
-				| EEquality Location Term Term                   -- x =%= y
-				| ERefl     Location Term                        -- %Refl x
-				| EEqElim   Location Term (Bind Term)            -- %eqelim t |% x => y
+				| EEquality Location Term Term                    -- x =%= y
+				| ERefl     Location Term                         -- %Refl x
+				| EEqElim   Location Term (Bind Term)             -- %eqelim t |% x => y
 				| EUndefined Index
 	
 	public export
@@ -108,8 +108,8 @@ mutual
 		(EEnum _ a0) == (EEnum _ a1) = a0 == a1
 		(ELabel _ a0) == (ELabel _ a1) = a0 == a1
 		(ECase _ a0 b0) == (ECase _ a1 b1) = a0 == a1 && b0 == b1
-		(ELift _ a0) == (ELift _ a1) = a0 == a1
-		(EBox _ a0) == (EBox _ a1) = a0 == a1
+		(ELazy _ a0) == (ELazy _ a1) = a0 == a1
+		(EDelay _ a0) == (EDelay _ a1) = a0 == a1
 		(EForce _ a0) == (EForce _ a1) = a0 == a1
 		(ERec _ a0) == (ERec _ a1) = a0 == a1
 		(EFold _ a0) == (EFold _ a1) = a0 == a1
@@ -120,6 +120,7 @@ mutual
 		(EUndefined a0) == (EUndefined a1) = a0 == a1
 		_ == _ = False
 
+export
 GetLoc Term where
 	getLoc (EVar    l _  ) = l
 	getLoc (ELet    l _ _) = l
@@ -136,8 +137,8 @@ GetLoc Term where
 	getLoc (EEnum   l _  ) = l
 	getLoc (ELabel  l _  ) = l
 	getLoc (ECase   l _ _) = l
-	getLoc (ELift   l _  ) = l
-	getLoc (EBox    l _  ) = l
+	getLoc (ELazy   l _  ) = l
+	getLoc (EDelay  l _  ) = l
 	getLoc (EForce  l _  ) = l
 	getLoc (ERec    l _  ) = l
 	getLoc (EFold   l _  ) = l

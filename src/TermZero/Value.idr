@@ -25,14 +25,15 @@ CLOSURE Boxed where
 mutual
 	data Value = VNeutral Neutral
 			| VUniv Int
-			| VQ Quantifier  (Pair (Pair EType (Bind EType)) Context)
+			| VQuant Quantifier (Closure $ Pair EType (Bind EType))
 			| VLambda     (Bind (Closure Term))
+			| VILambda    (Bind (Closure Term))
 			| VPair       (Closure (Pair Term Term))
 			| VIPair      (Closure (Pair Term Term))
 			| VEnum       (List Label)
 			| VLabel       Label
-			| VLift       (Closure EType)
-			| VBox         Boxed
+			| VLazy       (Closure EType)
+			| VDelay       Boxed
 			| VRec        (Closure EType)
 			| VFold       (Closure Term)
 			| VEqual      (Closure (Pair Term Term))
@@ -53,14 +54,15 @@ mutual
 	Eq Value where
 		(VNeutral a0) == (VNeutral a1) = a0 == a1
 		(VUniv a0) == (VUniv a1) = a0 == a1
-		(VQ a0 b0) == (VQ a1 b1) = a0 == a1 && b0 == b1
+		(VQuant a0 b0) == (VQuant a1 b1) = a0 == a1 && b0 == b1
 		(VLambda a0) == (VLambda a1) = a0 == a1
+		(VILambda a0) == (VILambda a1) = a0 == a1
 		(VPair a0) == (VPair a1) = a0 == a1
 		(VIPair a0) == (VIPair a1) = a0 == a1
 		(VEnum a0) == (VEnum a1) = a0 == a1
 		(VLabel a0) == (VLabel a1) = a0 == a1
-		(VLift a0) == (VLift a1) = a0 == a1
-		(VBox a0) == (VBox a1) = a0 == a1
+		(VLazy a0) == (VLazy a1) = a0 == a1
+		(VDelay a0) == (VDelay a1) = a0 == a1
 		(VRec a0) == (VRec a1) = a0 == a1
 		(VFold a0) == (VFold a1) = a0 == a1
 		(VEqual a0) == (VEqual a1) = a0 == a1
