@@ -59,15 +59,15 @@ emptyEnvironment : Environment
 emptyEnvironment = empty
 
 export
+partial
 env_lookup_term : Index -> Environment -> Closure Term
 env_lookup_term i e = case lookup i e of Just (t, _, _) => t
 
 export
 partial
 env_lookup_printInfo : Index -> Environment -> PrintInfo
-env_lookup_printInfo i e = 
-                 case lookup i e of
-                      Just (t, a, p) => p
+env_lookup_printInfo i e = case lookup i e of
+	Just (t, a, p) => p
 
 -- | Updates an existing entry and keeps the original printing info.
 export
@@ -75,7 +75,6 @@ env_update_term : Index -> Closure Term -> Environment -> Environment
 env_update_term i t e with (lookup i e)
 	| Nothing = e
 	| Just (_, a, p) = insert i (t, a, p) (delete i e)
-
 
 ||| closures
 export
