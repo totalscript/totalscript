@@ -1,4 +1,4 @@
 package totalscript
 
 sourcedir  = src
-opts       = "-p effects -p contrib"
+pkgs = effects, contrib
