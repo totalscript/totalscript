@@ -13,7 +13,16 @@ Index = Int
 
 data Name : Type where
 	NStr : String -> Name
-	NIndex : Int -> Name
+	NIndex : Int -> String -> Name
+
+Eq Name where
+	(NStr s) == (NStr s') = s == s'
+	(NIndex a _) == (NIndex a1 _) = a == a1
+	_ == _ = False
+
+Show Name where
+	show (NStr s) = s
+	show (NIndex a s) = "#" ++ show a ++ "'" ++ s
 
 Label : Type
 Label = String
