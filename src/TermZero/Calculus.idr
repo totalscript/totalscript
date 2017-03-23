@@ -27,7 +27,7 @@ interface Pi r where
 	app : r -> r -> r
 
 interface Sigma r where
-	sigma : String -> r -> r -> r
+	sigma : Name -> r -> r -> r
 	pair : r -> r -> r
 	split : r -> Name -> Name -> r -> r
 
