@@ -1,4 +1,15 @@
 package totalscript
 
+modules    = TermLang.Env
+           , TermLang.Eval
+           , TermLang.Syntax
+           , TermLang.TCUtil
+           , TermLang.Terms
+           , TermLang.Unify
+           , TermZero.Calculus
+           , TermZero.Location
+           , TermZero.Syntax
+           , TermZero.Value
+
 sourcedir  = src
-pkgs = effects, contrib
+pkgs       = effects, contrib
