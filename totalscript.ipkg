@@ -1,4 +1,6 @@
 package totalscript
 
 sourcedir  = src
-pkgs       = effects, contrib, wlpprint
+pkgs       = effects, contrib, lightyear, derive, pruviloj
+executable = tts0
+main       = Main

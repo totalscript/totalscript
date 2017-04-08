@@ -6,4 +6,5 @@
 /.psc*
 /.psa*
 **.ibc
+**.exe
 .vscode

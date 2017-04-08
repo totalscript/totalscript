@@ -1,0 +1,18 @@
+data Nat : Set 0
+  | Z : Nat
+  | S : (n : Nat) -> Nat;
+
+data Vect : (A : Set 0) -> (n : Nat) -> Set 0
+  | Nil : (A : Set 0) -> Vect A Z
+  | Cons : (A : Set 0) -> (m : Nat) -> (x : A) -> (xs : Vect A m) -> Vect A (S m);
+
+data Vect1 : (A : Set 0) -> (n : Nat) -> Set 0
+  | Nil1 : (A : Set 0) -> Vect1 A Z
+  | Cons1 : (A : Set 0) -> (x : A) -> (m : Nat) -> (xs : Vect A m) -> Vect1 A (S m);
+
+data Vect2 : (A : Set 0) -> (n : Nat) -> Set 0
+  | Nil2 : (A : Set 0) -> Vect2 A Z
+  | Cons2 : (m : Nat) -> (A : Set 0) -> (x : A) -> (xs : Vect A m) -> Vect2 A (S m);
+
+data Equal : (A : Set 0) -> (x : A) -> (y : A) -> Set 0
+  | Refl : (A : Set 0) -> (z : A) -> Equal A z z;
