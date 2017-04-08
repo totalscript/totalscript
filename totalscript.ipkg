@@ -1,0 +1,4 @@
+package totalscript
+
+sourcedir  = src
+pkgs       = effects, contrib, wlpprint
