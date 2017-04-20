@@ -38,7 +38,7 @@ Elaborator = StateT ElabState (Either String)
 export
 runElaborator : Elaborator () -> String \/ ElabState
 runElaborator elab = do
-	(_, p) <- runStateT elab (NewElabState [] empty [] 0 [] "" [] [] [])
+	(_, p) <- runStateT elab (NewElabState empty empty [] 0 [] "" [] [] [])
 	pure p
 
 export
@@ -181,7 +181,7 @@ export
 addConstructorToModule : String -> String -> ConSig Term -> Elaborator ()
 addConstructorToModule m c consig = do
 	sig <- signature
-	putSignature (((m,c),consig) :: sig)
+	putSignature $ insert (m,c) consig sig
 
 export
 addConstructor : String -> ConSig Term -> Elaborator ()

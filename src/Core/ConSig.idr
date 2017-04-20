@@ -36,4 +36,4 @@ conSigLength f (ConSigCons _ _ sc) = 1 + conSigLength f (instantiate sc (map f (
 
 public export
 Signature : Type -> Type
-Signature a = List (FullName, ConSig a)
+Signature a = SortedMap FullName (ConSig a)

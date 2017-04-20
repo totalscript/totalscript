@@ -31,7 +31,7 @@ where
 		defs <- definitions
 		sig <- signature
 		let ns = nub (case hu' of { Hiding ns' => ns' ; Using ns' => ns' })
-		let known = nub ([ n | ((_,n),_,_) <- toList defs ] ++ [ n | ((_,n),_) <- sig ])
+		let known = nub ([ n | ((_,n),_,_) <- toList defs ] ++ [ n | ((_,n),_) <- toList sig ])
 		let missing = ns \\ known
 		unless (isNil missing)
 			$ throw $ "The module " ++ m ++ " does not declare these symbols: "
@@ -46,7 +46,8 @@ where
 		defs <- definitions
 		sig <- signature
 		let ns = nub [ n | (n,_) <- r ]
-		let known = nub ([ n | ((m',n),_,_) <- toList defs, m' == m ] ++ [ n | ((m',n),_) <- sig, m' == m ])
+		let known = nub ([ n | ((m',n),_,_) <- toList defs, m' == m ]
+					++ [ n | ((m',n),_) <- toList sig, m' == m ])
 		let missing = ns \\ known
 		unless (isNil missing) $ throw $ "The module " ++ m ++ " does not declare these symbols: "
 			++ unwords ns
@@ -108,7 +109,8 @@ where
 
 	newAliasesFromSettings : OpenSettings -> ModuleAliases
 	newAliasesFromSettings (NewOpenSettings m a hu r) = do
-		let openedSymbols = [ (m',c) | ((m',c),_) <- sig, m' == m ] ++ [ (m',x) | ((m',x),_,_) <- toList defs, m' == m ]
+		let openedSymbols = [ (m',c) | ((m',c),_) <- toList sig, m' == m ]
+							++ [ (m',x) | ((m',x),_,_) <- toList defs, m' == m ]
 		let usedSymbols = used hu openedSymbols
 		let renamedSymbols = renamed r usedSymbols
 		ased a renamedSymbols

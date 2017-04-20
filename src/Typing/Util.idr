@@ -117,7 +117,7 @@ typeInSignature (DottedCon m n) = do
 		Just t  => pure (AbsoluteDottedCon m' n', t)
 typeInSignature (AbsoluteDottedCon m n) = do
 	consigs <- signature {s=TCState}
-	case List.lookup (m,n) consigs of
+	case SortedMap.lookup (m,n) consigs of
 		Nothing => throw $ "Unknown constructor: " ++ show (AbsoluteDottedCon m n)
 		Just t  => pure (AbsoluteDottedCon m n, t)
 

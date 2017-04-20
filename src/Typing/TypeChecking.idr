@@ -5,7 +5,6 @@ import Typing.Util
 import Typing.Unification
 
 
-
 export
 inferify : Term -> TypeChecker Inferred
 export
