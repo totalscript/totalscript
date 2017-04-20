@@ -1,8 +1,9 @@
 module Core.Program
 
-import Gen.Parens
-import Gen.Plict
+import General
+
 import Core.ConSig
+import Core.Variable
 import Core.Term
 
 %access export

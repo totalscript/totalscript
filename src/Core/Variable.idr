@@ -1,5 +1,7 @@
 module Core.Variable
 
+import Gen.Common
+
 --              0   0  o8o  8YYYo Y8Y  o8o  8888. 0    8YYYY
 -- ____ ____    0   0 8   8 8___P  0  8   8 8___Y 0    8___
 -- """" """"    "o o" 8YYY8 8""Yo  0  8YYY8 8"""o 0    8"""

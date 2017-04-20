@@ -1,15 +1,9 @@
 module Core.Abstraction
 
-import Control.Monad.Identity
-import Control.Monad.Trans
-import Control.Monad.Reader
-import Control.Monad.State
-
-import Gen.Abs
-import Gen.Plict
-import Gen.Scope
-import Core.ConSig
+import General
+import Core.Variable
 import Core.Term
+import Core.ConSig
 
 %access export
 

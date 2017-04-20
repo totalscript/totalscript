@@ -1,14 +1,9 @@
 module Core.Evaluation
 
-import Control.Catchable
+import General
 
-import Gen.Env
-import Gen.Eval
-import Gen.Plict
-import Gen.Scope
-import Gen.Errors
+import Core.Variable
 import Core.Term
-
 
 %access export
 

@@ -1,180 +1,8 @@
-module Unification.Elaboration
+module Elab.Elaboration
 
-import Data.List
-import Control.Monad.Identity
-import Control.Monad.Trans
-import Control.Monad.Reader
-import Control.Monad.State
-
-import Gen.Abs
-import Gen.Eval
-import Gen.Plict
-import Gen.Scope
-import Gen.Errors
-import Gen.TypeChecker
-
-import Core.Abstraction
-import Core.ConSig
-import Core.Evaluation
-import Core.Term
-import Core.Program
-
-import LTerm.TCUtil
-import LTerm.TypeChecking
-
-OpenFunction : Type
-OpenFunction = FullName >< (Term >< List Plict >< CaseMotive >< List Clause)
-
--- 8YYYY 0     o8o  8888. oYYYo YY8YY  o8o  YY8YY 8YYYY
--- 8___  0    8   8 8___Y %___    0   8   8   0   8___
--- 8"""  0    8YYY8 8"""o `"""p   0   8YYY8   0   8"""
--- 8oooo 8ooo 0   0 8ooo" YoooY   0   0   0   0   8oooo
-
-record ElabState where
-	constructor NewElabState
-	elabSig : Signature Term
-	elabDefs : Definitions
-	elabCtx : Context
-	elabNextName : Int
-	elabAliases : ModuleAliases
-	elabModName : String
-	elabModuleNames : List String
-	elabOpenData : List FullName
-	elabOpenFunctions : List OpenFunction
-
--- 8YYYY 0     o8o  8888. _YYY_ 8YYYo  o8o  YY8YY _YYY_ 8YYYo
--- 8___  0    8   8 8___Y 0   0 8___P 8   8   0   0   0 8___P
--- 8"""  0    8YYY8 8"""o 0   0 8""Yo 8YYY8   0   0   0 8""Yo
--- 8oooo 8ooo 0   0 8ooo" "ooo" 0   0 0   0   0   "ooo" 0   0
-
-Elaborator : Type -> Type
-Elaborator = StateT ElabState (Either String)
-
-runElaborator : Elaborator () -> String \/ ElabState
-runElaborator elab = do
-	(_, p) <- runStateT elab (NewElabState [] [] [] 0 [] "" [] [] [])
-	pure p
-
-signature : Elaborator (Signature Term)
-signature = elabSig <$> get
-
-context : Elaborator Context
-context = elabCtx <$> get
-
-definitions : Elaborator Definitions
-definitions = elabDefs <$> get
-
-aliases : Elaborator ModuleAliases
-aliases = elabAliases <$> get
-
-moduleName : Elaborator String
-moduleName = elabModName <$> get
-
-putSignature : Signature Term -> Elaborator ()
-putSignature sig = do
-	s <- get
-	put (record { elabSig = sig } s)
-
-putContext : Context -> Elaborator ()
-putContext ctx = do
-	s <- get
-	put (record { elabCtx = ctx} s)
-
-putDefinitions : Definitions -> Elaborator ()
-putDefinitions defs = do
-	s <- get
-	put (record {elabDefs = defs } s)
-
-putAliases : ModuleAliases -> Elaborator ()
-putAliases als = do
-	s <- get
-	put (record { elabAliases = als } s)
-
-addAliasFor : String \/ FullName -> FullName -> Elaborator ()
-addAliasFor a b = do
-	als <- aliases
-	putAliases ((a,b) :: als)
-
-addAlias : String -> Elaborator ()
-addAlias n = do
-	m <- moduleName
-	addAliasFor (Left n) (m,n)
-	addAliasFor (Right (m,n)) (m,n)
-
-putModuleName : String -> Elaborator ()
-putModuleName m = do
-	s <- get
-	put (record { elabModName = m } s)
-
-moduleNames : Elaborator (List String)
-moduleNames = elabModuleNames <$> get
-
-putModuleNames : List String -> Elaborator ()
-putModuleNames ms = do
-	s <- get
-	put (record { elabModuleNames = ms } s)
-
-addModuleName : String -> Elaborator ()
-addModuleName m = do
-	ms <- moduleNames
-	unless (not (m `elem` ms))
-		$ throw $ "A module is already declared with the name " ++ m
-	putModuleNames (m :: ms)
-
-openData : Elaborator (List FullName)
-openData = elabOpenData <$> get
-
-putOpenData : List FullName -> Elaborator ()
-putOpenData od = do
-	s <- get
-	put (record { elabOpenData = od } s)
-
-openFunctions : Elaborator (List OpenFunction)
-openFunctions = elabOpenFunctions <$> get
-
-putOpenFunctions : List OpenFunction -> Elaborator ()
-putOpenFunctions fs = do
-	s <- get
-	put (record { elabOpenFunctions = fs } s)
-
-when' : TypeChecker a -> Elaborator () -> Elaborator ()
-when' tc e = do
-	NewElabState sig defs ctx i als _ ms _ _ <- get
-	case runTypeChecker tc sig defs ctx i als ms of
-		Left _  => pure ()
-		Right _ => e
-
-liftTC : TypeChecker a -> Elaborator a
-liftTC tc = do
-	NewElabState sig defs ctx i als _ ms _ _ <- get
-	case runTypeChecker tc sig defs ctx i als ms of
-		Left e => throw e
-		Right (a, s) => do
-			s' <- get
-			put $ record { elabNextName = tcNextName s } s'
-			pure a
-
-addDeclaration : String -> Term -> Term -> Elaborator ()
-addDeclaration n def ty = do
-	defs <- definitions
-	m <- moduleName
-	putDefinitions (((m, n), def, ty) :: defs)
-
-updateDeclaration : String -> Term -> Term -> Elaborator ()
-updateDeclaration n def ty = do
-	defs <- definitions
-	m <- moduleName
-	putDefinitions [ if p == (m, n) then (p, def, ty) else (p, q, r) | (p, q, r) <- defs ]
-
-addConstructorToModule : String -> String -> ConSig Term -> Elaborator ()
-addConstructorToModule m c consig = do
-	sig <- signature
-	putSignature (((m,c),consig) :: sig)
-
-addConstructor : String -> ConSig Term -> Elaborator ()
-addConstructor c consig = do
-	m <- moduleName
-	addConstructorToModule m c consig
+import Elab.Common
+import Typing.TypeChecking
+import Typing.Util
 
 -- 8YYYY 8o  0 oYYYo 0   0 8YYYo 8YYYY      _YYY_ oYYYo    0   0  o8o  0    Y8Y 8888_
 -- 8___  8Yo 8 %___  0   0 8___P 8___  ____ 0   0 %___     0   0 8   8 0     0  0   0
@@ -312,12 +140,13 @@ buildLambda f (plic :: plics) = Lam plic $
 -- 8"""  0    8YYY8 8"""o   0   8"""  8""Yo 0  8  0 0   0 8"""  0   , 0
 -- 8oooo 8ooo 0   0 8ooo"   0   8oooo 0   0 0     0 8oooY 8oooo  YooY 8ooo
 
+export elabTermDecl : TermDeclaration -> Elaborator ()
+
 --         oYYYo Y8Y 8_   _8 8YYYo 0    8YYYY
 -- ____    %___   0  8"o_o"8 8___P 0    8___
 -- """"    `"""p  0  0  8  0 8"""  0    8"""
 --         YoooY o8o 0     0 0     8ooo 8oooo
 
-elabTermDecl : TermDeclaration -> Elaborator ()
 elabTermDecl (SimpleTermDef n ty def) = do
 	when' (typeInDefinitions n) $ throw ("Term already defined: " ++ n)
 	ty' <- liftTC (check ty Star)
@@ -501,7 +330,13 @@ elabInstanceAlt m localTycon c consig = do
 -- 8"""  0    8YYY8 8"""o   0     0   8"""  8"""  0   0 8"""  0   , 0
 -- 8oooo 8ooo 0   0 8ooo"   0     0   0     8oooo 8oooY 8oooo  YooY 8ooo
 
-elabTypeDecl : TypeDeclaration -> Elaborator ()
+export elabTypeDecl : TypeDeclaration -> Elaborator ()
+
+--         Y8Y 8o  0 8888_ 0   0  oYYo YY8YY Y8Y 0   0 8YYYY
+-- ____     0  8Yo 8 0   0 0   0 0   "   0    0  0   0 8___
+-- """"     0  8 Yo8 0   0 0   0 0   ,   0    0  "o o" 8"""
+--         o8o 0   8 8oooY "ooo"  YooY   0   o8o  "8"  8oooo
+
 elabTypeDecl (Inductive tycon tyconargs alts) = do
 	let tyconSig = conSigHelper tyconargs Star
 	when' (typeInSignature (BareCon tycon))
@@ -510,6 +345,12 @@ elabTypeDecl (Inductive tycon tyconargs alts) = do
 	tyconSig' <- liftTC (checkifyConSig tyconSig)
 	addConstructor tycon tyconSig'
 	traverse_ (uncurry (elabAlt tycon)) alts
+
+--         8888_  o8o  YY8YY  o8o  8YYYY  o8o  8_   _8 Y8Y 0    0   0
+-- ____    0   0 8   8   0   8   8 8___  8   8 8"o_o"8  0  0    "o o"
+-- """"    0   0 8YYY8   0   8YYY8 8"""  8YYY8 0  8  0  0  0      0
+--         8oooY 0   0   0   0   0 0     0   0 0     0 o8o 8ooo   0
+
 elabTypeDecl (DataFamily tycon tyconargs) = do
 	let tyconSig = conSigHelper tyconargs Star
 	when' (typeInSignature (BareCon tycon))
@@ -520,6 +361,12 @@ elabTypeDecl (DataFamily tycon tyconargs) = do
 	m <- moduleName
 	od <- openData
 	putOpenData ((m,tycon) :: od)
+
+--         8888_  o8o  YY8YY  o8o  Y8Y 8o  0 oYYYo YY8YY  o8o  8o  0  oYYo 8YYYY
+-- ____    0   0 8   8   0   8   8  0  8Yo 8 %___    0   8   8 8Yo 8 0   " 8___
+-- """"    0   0 8YYY8   0   8YYY8  0  8 Yo8 `"""p   0   8YYY8 8 Yo8 0   , 8"""
+--         8oooY 0   0   0   0   0 o8o 0   8 YoooY   0   0   0 0   8  YooY 8oooo
+
 elabTypeDecl (DataInstance tycon alts) = do
 	let aliasedName = case tycon of
 						BareCon c => Left c
@@ -535,7 +382,7 @@ elabTypeDecl (DataInstance tycon alts) = do
 -- 8"""  0    8YYY8 8"""o 0  8  0 0   0 0   0 0   0 0    8"""
 -- 8oooo 8ooo 0   0 8ooo" 0     0 "ooo" 8oooY "ooo" 8ooo 8oooo
 
-elabModule : Module -> Elaborator ()
+export elabModule : Module -> Elaborator ()
 elabModule (NewModule m settings stmts0) = do
 	addModuleName m
 	putModuleName m

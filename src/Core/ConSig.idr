@@ -1,10 +1,10 @@
 module Core.ConSig
 
-import Gen.Plict
-import Gen.Scope
+import General
+
 import Debug.Error
 
-import public Core.Variable
+import Core.Variable
 
 %language ElabReflection
 

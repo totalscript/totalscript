@@ -1,25 +1,8 @@
-module Unification.TypeChecking
+module Typing.TypeChecking
 
-import Data.List
-import Control.Monad.Identity
-import Control.Monad.Trans
-import Control.Monad.Reader
-import Control.Monad.State
-
-import Gen.Abs
-import Gen.Eval
-import Gen.Plict
-import Gen.Scope
-import Gen.Errors
-import Gen.TypeChecker
-
-import Core.Abstraction
-import Core.ConSig
-import Core.Evaluation
-import Core.Term
-
-import LTerm.TCUtil
-import LTerm.Unification
+import Typing.Common
+import Typing.Util
+import Typing.Unification
 
 
 

@@ -1,24 +1,7 @@
-module Unification.Equate
+module Typing.Equate
 
-import Data.List
-import Control.Monad.Identity
-import Control.Monad.Trans
-import Control.Monad.Reader
-import Control.Monad.State
-
-import Gen.Abs
-import Gen.Eval
-import Gen.Plict
-import Gen.Scope
-import Gen.Errors
-import Gen.TypeChecker
-
-import Core.Abstraction
-import Core.ConSig
-import Core.Evaluation
-import Core.Term
-
-import LTerm.TCUtil
+import Typing.Common
+import Typing.Util
 
 -- 8YYYY _YYY_ 0   0  o8o  YY8YY Y8Y _YYY_ 8o  0
 -- 8___  0 _ 8 0   0 8   8   0    0  0   0 8Yo 8

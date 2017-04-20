@@ -1,13 +1,11 @@
 module Core.Term
 
-import public Gen.Env
-import public Core.Variable
-import Gen.Parens
-import Gen.Plict
-import Gen.Scope
-
 import Pruviloj
 import Derive.Eq
+
+import General
+
+import Core.Variable
 
 %language ElabReflection
 
