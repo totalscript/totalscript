@@ -24,6 +24,7 @@ data TermDeclaration
   | PatternTermDef String Term (List ClauseDeclT)
   | OpenTermDef String (List DeclArg) Term
   | InstTermDef (String \/ FullName) (List ClauseDeclT)
+  | CloseTermDef (String \/ FullName)
 
 showPattern : (Plict, Pattern) -> String
 showPattern (Expl, p) = parenthesize (Just ExplConPatArg) p
@@ -41,6 +42,7 @@ Show TermDeclaration where
 	show (OpenTermDef n args ty) = "define family " ++ n ++ " " ++ unwords (map show args) ++ " : " ++ show ty ++ " end"
 	show (InstTermDef n preclauses) = "define instance " ++ show n ++ " where "
 		++ interlace " | " (map showPreclause preclauses)
+	show (CloseTermDef n) = "%close " ++ show n
 
 -- YY8YY 0   0 8YYYo 8YYYY 8888_ 8YYYY  oYYo 0
 --   0   "o o" 8___P 8___  0   0 8___  0   " 0

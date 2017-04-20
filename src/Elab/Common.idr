@@ -5,8 +5,8 @@ import public Typing.Common
 import Typing.TypeChecking
 
 public export
-OpenFunction : Type
-OpenFunction = FullName >< (Term >< List Plict >< CaseMotive >< List Clause)
+OpenFunctions : Type
+OpenFunctions = SortedMap FullName (Term >< List Plict >< CaseMotive >< List Clause)
 
 -- 8YYYY 0     o8o  8888. oYYYo YY8YY  o8o  YY8YY 8YYYY
 -- 8___  0    8   8 8___Y %___    0   8   8   0   8___
@@ -24,7 +24,7 @@ record ElabState where
 	elabModName : String
 	elabModuleNames : List String
 	elabOpenData : List FullName
-	elabOpenFunctions : List OpenFunction
+	elabOpenFunctions : OpenFunctions
 
 -- 8YYYY 0     o8o  8888. _YYY_ 8YYYo  o8o  YY8YY _YYY_ 8YYYo
 -- 8___  0    8   8 8___Y 0   0 8___P 8   8   0   0   0 8___P
@@ -38,7 +38,7 @@ Elaborator = StateT ElabState (Either String)
 export
 runElaborator : Elaborator () -> String \/ ElabState
 runElaborator elab = do
-	(_, p) <- runStateT elab (NewElabState empty empty [] 0 [] "" [] [] [])
+	(_, p) <- runStateT elab (NewElabState empty empty [] 0 [] "" [] [] empty)
 	pure p
 
 export
@@ -133,11 +133,11 @@ putOpenData od = do
 	put (record { elabOpenData = od } s)
 
 export
-openFunctions : Elaborator (List OpenFunction)
+openFunctions : Elaborator OpenFunctions
 openFunctions = elabOpenFunctions <$> get
 
 export
-putOpenFunctions : List OpenFunction -> Elaborator ()
+putOpenFunctions : OpenFunctions -> Elaborator ()
 putOpenFunctions fs = do
 	s <- get
 	put (record { elabOpenFunctions = fs } s)

@@ -224,7 +224,7 @@ elabTermDecl (OpenTermDef n args ty) = do
 	fs <- openFunctions
 	case lookup (m,n) fs of
 		Nothing => do
-				putOpenFunctions (((m,n),(ty',plics,mot',[])) :: fs)
+				putOpenFunctions $ insert (m,n) (ty',plics,mot',[]) $ fs
 				let initialDef = buildLambda (\xs => Case xs mot' []) plics
 				addAlias n
 				initialDef' <- liftTC $
@@ -249,22 +249,23 @@ elabTermDecl (InstTermDef n preclauses) = do
 		Right (m0,n0) => DottedVar m0 n0
 	(m',n') <- liftTC $ unalias n
 	fs <- openFunctions
-	case lookup (m',n') fs of
-		Nothing => throw $ "No open function named " ++ show aliasedName ++ " has been declared."
-		Just (ty,plics,mot,clauses) => do
-			clauses' <- Traversable.for preclauses $ \(plics',(ps,xs,b)) => do
-				case insertMetas plics plics' of
-					Nothing => throw $ "Instance for open function " ++ show aliasedName ++
-						" has invalid argument plicities."
-					Just bs => pure $ clauseHelper (truePatterns bs ps) xs b
-			let newClauses = clauses ++ clauses'
-			let newDef = buildLambda (\xs => Case xs mot newClauses) plics
-			let newOpenFunctions = ((m',n'),(ty,plics,mot,newClauses)) :: filter (\(p,_) => p /= (m',n')) fs
-			newDef' <- liftTC $ extendDefinitions (insert (m',n') (newDef, ty) empty) (check newDef ty)
-			putOpenFunctions newOpenFunctions
-			defs <- definitions
-			putDefinitions $ fromList $
-				((m',n'),newDef',ty) :: filter (\(p,_,_) => p /= (m',n')) (toList defs)
+	Just (ty,plics,mot,clauses) <- pure $ lookup (m',n') fs
+		| _ => throw ("No open function named " ++ show aliasedName ++ " has been declared.")
+
+	clauses' <- Traversable.for preclauses $ \(plics',(ps,xs,b)) => do
+		case insertMetas plics plics' of
+			Nothing => throw $ "Instance for open function " ++ show aliasedName ++
+				" has invalid argument plicities."
+			Just bs => pure $ clauseHelper (truePatterns bs ps) xs b
+	let newClauses = clauses ++ clauses'
+	let newDef = buildLambda (\xs => Case xs mot newClauses) plics
+	let newOpenFunctions = insert (m',n') (ty,plics,mot,newClauses) $
+		fromList $ filter (\(p,_) => p /= (m',n')) $ toList fs
+	newDef' <- liftTC $ extendDefinitions (insert (m',n') (newDef, ty) empty) (check newDef ty)
+	putOpenFunctions newOpenFunctions
+	defs <- definitions
+	putDefinitions $ insert (m', n') (newDef', ty) $
+		fromList $ filter (\(p,_,_) => p /= (m',n')) (toList defs)
 where
 	insertMetas : List Plict -> List Plict -> Maybe (List Bool)
 	insertMetas [] [] = Just []
@@ -284,6 +285,21 @@ where
 	truePatterns [] [] = []
 	truePatterns (False :: plics) (p :: ps) = p :: truePatterns plics ps
 	truePatterns (True :: plics) ps = MakeMeta :: truePatterns plics ps
+
+--          oYYo 0    _YYY_ oYYYo 8YYYY
+-- ____    0   " 0    0   0 %___  8___
+-- """"    0   , 0    0   0 `"""p 8"""
+--          YooY 8ooo "ooo" YoooY 8oooo
+
+elabTermDecl (CloseTermDef n) = do
+	let aliasedName = the Term $ case n of
+		Left n0 => Var (Name n0)
+		Right (m0,n0) => DottedVar m0 n0
+	(m',n') <- liftTC $ unalias n
+	fs <- openFunctions
+	Just (ty,plics,mot,clauses) <- pure $ lookup (m',n') fs
+		| _ => throw ("Open function " ++ show aliasedName ++ " is not defined.")
+	putOpenFunctions $ fromList $ filter (\(p,_) => p /= (m',n')) $ toList fs
 
 -- 0   0  o8o  0    Y8Y 8888_  oYYo _YYY_ 8o  0 oYYYo Y8Y  oYYo
 -- 0   0 8   8 0     0  0   0 0   " 0   0 8Yo 8 %___   0  0  __
