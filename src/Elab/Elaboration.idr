@@ -31,7 +31,7 @@ where
 		defs <- definitions
 		sig <- signature
 		let ns = nub (case hu' of { Hiding ns' => ns' ; Using ns' => ns' })
-		let known = nub ([ n | ((_,n),_,_) <- defs ] ++ [ n | ((_,n),_) <- sig ])
+		let known = nub ([ n | ((_,n),_,_) <- toList defs ] ++ [ n | ((_,n),_) <- sig ])
 		let missing = ns \\ known
 		unless (isNil missing)
 			$ throw $ "The module " ++ m ++ " does not declare these symbols: "
@@ -46,7 +46,7 @@ where
 		defs <- definitions
 		sig <- signature
 		let ns = nub [ n | (n,_) <- r ]
-		let known = nub ([ n | ((m',n),_,_) <- defs, m' == m ] ++ [ n | ((m',n),_) <- sig, m' == m ])
+		let known = nub ([ n | ((m',n),_,_) <- toList defs, m' == m ] ++ [ n | ((m',n),_) <- sig, m' == m ])
 		let missing = ns \\ known
 		unless (isNil missing) $ throw $ "The module " ++ m ++ " does not declare these symbols: "
 			++ unwords ns
@@ -108,7 +108,7 @@ where
 
 	newAliasesFromSettings : OpenSettings -> ModuleAliases
 	newAliasesFromSettings (NewOpenSettings m a hu r) = do
-		let openedSymbols = [ (m',c) | ((m',c),_) <- sig, m' == m ] ++ [ (m',x) | ((m',x),_,_) <- defs, m' == m ]
+		let openedSymbols = [ (m',c) | ((m',c),_) <- sig, m' == m ] ++ [ (m',x) | ((m',x),_,_) <- toList defs, m' == m ]
 		let usedSymbols = used hu openedSymbols
 		let renamedSymbols = renamed r usedSymbols
 		ased a renamedSymbols
@@ -152,7 +152,7 @@ elabTermDecl (SimpleTermDef n ty def) = do
 	ty' <- liftTC (check ty Star)
 	m <- moduleName
 	addAlias n
-	def' <- liftTC (extendDefinitions [((m,n),def,ty')] (check def ty'))
+	def' <- liftTC (extendDefinitions (insert (m,n) (def,ty') empty) (check def ty'))
 	addDeclaration n def' ty'
 
 --         8YYYo  o8o  YY8YY YY8YY 8YYYY 8YYYo 8o  0
@@ -225,7 +225,8 @@ elabTermDecl (OpenTermDef n args ty) = do
 				putOpenFunctions (((m,n),(ty',plics,mot',[])) :: fs)
 				let initialDef = buildLambda (\xs => Case xs mot' []) plics
 				addAlias n
-				initialDef' <- liftTC $ extendDefinitions [((m,n),initialDef,ty')] (check initialDef ty')
+				initialDef' <- liftTC $
+					extendDefinitions (insert (m,n) (initialDef,ty') empty) (check initialDef ty')
 				addDeclaration n initialDef' ty
 		Just _ => throw $ "The open function " ++ show (DottedVar m n) ++ " has already been declared."
 where
@@ -257,10 +258,11 @@ elabTermDecl (InstTermDef n preclauses) = do
 			let newClauses = clauses ++ clauses'
 			let newDef = buildLambda (\xs => Case xs mot newClauses) plics
 			let newOpenFunctions = ((m',n'),(ty,plics,mot,newClauses)) :: filter (\(p,_) => p /= (m',n')) fs
-			newDef' <- liftTC $ extendDefinitions [((m',n'), newDef, ty)] (check newDef ty)
+			newDef' <- liftTC $ extendDefinitions (insert (m',n') (newDef, ty) empty) (check newDef ty)
 			putOpenFunctions newOpenFunctions
 			defs <- definitions
-			putDefinitions $ ((m',n'),newDef',ty) :: filter (\(p,_,_) => p /= (m',n')) defs
+			putDefinitions $ fromList $
+				((m',n'),newDef',ty) :: filter (\(p,_,_) => p /= (m',n')) (toList defs)
 where
 	insertMetas : List Plict -> List Plict -> Maybe (List Bool)
 	insertMetas [] [] = Just []

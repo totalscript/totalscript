@@ -26,7 +26,7 @@ occurs _ (AbsoluteDottedVar _ _)
                           = False
 occurs x (Ann m t)        = occurs x m || occurs x t
 occurs _ Star             = False
-occurs x (Pi _ a sc)     = occurs x a || occurs x (descope (Var . Name) sc)
+occurs x (Pi _ a sc)      = occurs x a || occurs x (descope (Var . Name) sc)
 occurs x (Lam _ sc)       = occurs x (descope (Var . Name) sc)
 occurs x (App _ f a)      = occurs x f || occurs x a
 occurs x (Con _ as)       = any (occurs x . snd) as

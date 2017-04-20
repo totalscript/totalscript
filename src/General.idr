@@ -2,6 +2,7 @@
 module General
 
 import public Data.List
+import public Data.SortedMap
 
 import public Gen.Abs
 import public Gen.Common

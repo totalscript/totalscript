@@ -1,5 +1,6 @@
 module Gen.Scope
 
+import Data.SortedMap
 import Control.Monad.Identity
 import Control.Monad.Reader
 

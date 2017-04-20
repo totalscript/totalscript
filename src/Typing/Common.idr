@@ -19,7 +19,7 @@ extract p (x::xs) with (p x)
 
 public export
 Definitions : Type
-Definitions = List $ FullName >< Term >< Term
+Definitions = Environment FullName (Term >< Term)
 
 public export
 ContextEntry : Type
@@ -64,7 +64,7 @@ TypeCheckerState TCState (Signature Term) Definitions Context where
 	putTypeCheckerSig s sig = record { tcSig = sig } s
 	typeCheckerDefs = tcDefs
 	putTypeCheckerDefs s defs = record { tcDefs = defs } s
-	addTypeCheckerDefs s edefs = record { tcDefs = edefs ++ tcDefs s } s
+	addTypeCheckerDefs s edefs = record { tcDefs = fromList(toList edefs ++ toList (tcDefs s)) } s
 	typeCheckerCtx = tcCtx
 	putTypeCheckerCtx s ctx = record { tcCtx = ctx } s
 	addTypeCheckerCtx s ectx = record { tcCtx = ectx ++ tcCtx s } s

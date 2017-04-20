@@ -29,7 +29,7 @@ implementation Abstract a b Term => Abstract a b Telescope where
 mutual
 	implementation Abstract String Term Term where
 		abstr (Meta i) = pure $ Meta i
-		abstr (Var (Name x)) = asks $ \e => case lookup x e of
+		abstr (Var (Name x)) = asks $ \e => case SortedMap.lookup x e of
 			Nothing => Var (Name x)
 			Just m  => m
 		abstr (Var (Generated x i)) = pure $ Var (Generated x i)
@@ -56,7 +56,7 @@ mutual
 	implementation Abstract Int Term Term where
 		abstr (Meta i) = pure $ Meta i
 		abstr (Var (Name x)) = pure $ Var (Name x)
-		abstr (Var (Generated x i)) = asks $ \e => case lookup i e of
+		abstr (Var (Generated x i)) = asks $ \e => case SortedMap.lookup i e of
 			Nothing => Var (Generated x i)
 			Just m  => m
 		abstr (DottedVar m var) = pure $ DottedVar m var
@@ -81,7 +81,7 @@ mutual
 mutual
 	implementation Abstract String Variable Term where
 		abstr (Meta i) = pure $ Meta i
-		abstr (Var (Name x)) = asks $ \e => case lookup x e of
+		abstr (Var (Name x)) = asks $ \e => case SortedMap.lookup x e of
 			Nothing => Var (Name x)
 			Just y  => Var y
 		abstr (Var (Generated x i)) = pure $ Var (Generated x i)
@@ -99,10 +99,9 @@ mutual
 		abstr (Project m x) = Project <$> abstr m <*> pure x
 
 	implementation Abstract String Variable Pattern where
-		abstr (VarPat (Name x)) = asks $ \e =>
-			case lookup x e of
-				Nothing => VarPat (Name x)
-				Just y  => VarPat y
+		abstr (VarPat (Name x)) = asks $ \e => case SortedMap.lookup x e of
+			Nothing => VarPat (Name x)
+			Just y  => VarPat y
 		abstr (VarPat (Generated x i)) = pure $ VarPat (Generated x i)
 		abstr (ConPat c ps) = ConPat c <$> traverse abstr ps
 		abstr (AssertionPat m) = AssertionPat <$> abstr m
@@ -112,10 +111,9 @@ mutual
 	implementation Abstract Int Variable Term where
 		abstr (Meta i) = pure $ Meta i
 		abstr (Var (Name x)) = pure $ Var (Name x)
-		abstr (Var (Generated x i)) = asks $ \e =>
-			case lookup i e of
-				Nothing => Var (Generated x i)
-				Just y  => Var y
+		abstr (Var (Generated x i)) = asks $ \e => case SortedMap.lookup i e of
+			Nothing => Var (Generated x i)
+			Just y  => Var y
 		abstr (DottedVar m var) = pure $ DottedVar m var
 		abstr (AbsoluteDottedVar m var) = pure $ AbsoluteDottedVar m var
 		abstr (Ann m ty) = Ann <$> abstr m <*> pure ty
@@ -131,10 +129,9 @@ mutual
 
 	implementation Abstract Int Variable Pattern where
 		abstr (VarPat (Name x)) = pure $ VarPat (Name x)
-		abstr (VarPat (Generated x i)) = asks $ \e =>
-			case lookup i e of
-				Nothing => VarPat (Generated x i)
-				Just y  => VarPat y
+		abstr (VarPat (Generated x i)) = asks $ \e => case SortedMap.lookup i e of
+			Nothing => VarPat (Generated x i)
+			Just y  => VarPat y
 		abstr (ConPat c ps) = ConPat c <$> traverse abstr ps
 		abstr (AssertionPat m) = AssertionPat <$> abstr m
 		abstr MakeMeta = pure MakeMeta

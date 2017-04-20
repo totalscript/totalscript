@@ -38,7 +38,7 @@ Elaborator = StateT ElabState (Either String)
 export
 runElaborator : Elaborator () -> String \/ ElabState
 runElaborator elab = do
-	(_, p) <- runStateT elab (NewElabState [] [] [] 0 [] "" [] [] [])
+	(_, p) <- runStateT elab (NewElabState [] empty [] 0 [] "" [] [] [])
 	pure p
 
 export
@@ -166,14 +166,16 @@ addDeclaration : String -> Term -> Term -> Elaborator ()
 addDeclaration n def ty = do
 	defs <- definitions
 	m <- moduleName
-	putDefinitions (((m, n), def, ty) :: defs)
+	putDefinitions $ insert (m, n) (def, ty) defs
 
 export
 updateDeclaration : String -> Term -> Term -> Elaborator ()
 updateDeclaration n def ty = do
 	defs <- definitions
 	m <- moduleName
-	putDefinitions [ if p == (m, n) then (p, def, ty) else (p, q, r) | (p, q, r) <- defs ]
+	-- putDefinitions $ map (\(p, q, r) => if p == (m, n) then (p, def, ty) else (p, q, r)) defs
+	putDefinitions $ fromList $
+		map (\(p, q, r) => if p == (m, n) then (p, def, ty) else (p, q, r)) $ toList defs
 
 export
 addConstructorToModule : String -> String -> ConSig Term -> Elaborator ()

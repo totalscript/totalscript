@@ -11,7 +11,7 @@ export
 evaluate : Term -> TypeChecker Term
 evaluate m = do
 	defs <- definitions {s=TCState}
-	let scope = [ (x,m') | (x,m',_) <- defs ]
+	let scope = fromList $ [ (x,m') | (x,m',_) <- toList defs ]
 	let evalResult = runReaderT (eval m) scope
 	case evalResult of
 		Left e   => throw e
@@ -117,7 +117,7 @@ typeInSignature (DottedCon m n) = do
 		Just t  => pure (AbsoluteDottedCon m' n', t)
 typeInSignature (AbsoluteDottedCon m n) = do
 	consigs <- signature {s=TCState}
-	case lookup (m,n) consigs of
+	case List.lookup (m,n) consigs of
 		Nothing => throw $ "Unknown constructor: " ++ show (AbsoluteDottedCon m n)
 		Just t  => pure (AbsoluteDottedCon m n, t)
 
@@ -125,7 +125,7 @@ export
 absoluteDottedTypeInDefinitions : String -> String -> TypeChecker (FullName >< Term)
 absoluteDottedTypeInDefinitions m x = do
 	defs <- definitions
-	case find (\(mx,_,_) => mx == (m,x)) defs of
+	case find (\(mx,_,_) => mx == (m,x)) (toList defs) of
 		Nothing      => throw $ "Unknown constant/defined term: " ++ m ++ "." ++ x
 		Just (_,_,t) => pure ((m, x), t)
 
@@ -140,7 +140,7 @@ typeInDefinitions : String -> TypeChecker (FullName >< Term)
 typeInDefinitions x0 = do
 	(m,x) <- unalias (Left x0)
 	defs <- definitions
-	case find (\(mx,_,_) => mx == (m,x)) defs of
+	case find (\(mx,_,_) => mx == (m,x)) (toList defs) of
 		Nothing      => throw $ "Unknown constant/defined term: " ++ m ++ "." ++ x
 		Just (_,_,t) => pure ((m,x),t)
 
