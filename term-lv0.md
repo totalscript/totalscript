@@ -1,59 +1,49 @@
-## Term language, level 0
+# Term 0 proposal
 
-| Category         | Type                  | Introduction  | Elimination                |
-| ---------------- | --------------------- | ------------- | -------------------------- |
-| Pi (Explicit)    | `(x : a) -> y`        | `a => b`      | `a b`                      |
-| Sigma (Explicit) | `(x : a) >< b`        | `(a, b)`      | `%split m %| (a, b) =>`    |
-| Pi (Implicit)    | `{x : a} -> y`        | `{a} => b`    | `a @{b}`                   |
-| Sigma (Implicit) | `{x : a} >< b`        | `({a}, b)`    | `%isplit m %| (a, b) =>`   |
-| Finite           | `%Finite {%a, %b, …}` | `%a`, `%b`, … | `%case m %| { %a => …; …}` |
-| Equality (?)     | `a =%= b`             | `%refl a`     | `%eqelim m %| a => …`      |
-| Recursion (?)    | `%Rec a`              | `%fold x`     | `%unfold t %| x =>`        |
-| Laziness (?)     | `%Inf a`              | `%delay x`    | `%force t %| x =>`         |
+1. The entire program is separated into multiple **frames**.
+2. Each frame would be either a **inductive**, or a **function**.
+3. Declarations within same frame can mutually recurse.
+4. An **inductive** is...
+5. A **function** corresponds a name, a type and a term. The type is an `expr` while the term is a **case tree** corresponds to a series of terms.
 
----
+Example.
 
-Main ideas:
+```
+begin-frame
 
-1. Pi : `(x : T) -> y` or `{x : T} -> y`; Lambda: `x => e`.
+interfaces
+condef Vect Nat Type : Type
+condef Nil (auto a : Type) : Vect Z a
+condef Cons (auto a : Type) (auto m : Nat) a (Vect m a) : Vect (S m) a
+close inductive Vect = Nil; Cons
+term append : (auto a : Type) -> (auto m : Nat) -> (auto n : Nat) ->
+	Vect m a -> Vect n a -> Vect (m + n) a
 
-2. Sigma : `(x : T) >< y` or `{x : T} >< y`; Pair: `(x, e)`.
-
-3. Finite types for tagging : `%Finite {%tag1, %tag2, ...}`.
-
-    1. Matches only works on Finites.
-
-4. Primitive equality, `a =%= b` and `%refl`.
-
-    1. Use in unification?
-
-5. Inductives are encoded as sigma and cases:
-    ```
-    inductive Vec : Nat -> Type -> Type {
-        Nil : Vec 0 a
-        Cons : a -> Vec n a -> Vec (S n) a
+implementation
+append = intro auto a => {
+  intro auto m => {
+    intro auto n => {
+      split car {
+        [Nil ~a'] => intro cdr => cdr
+        [Cons ~a' ~m' car' cdr'] => intro cdr =>
+          Cons @a @(m' + n) car' (append @a @m' @n cdr' cdr)
+      }
     }
-    ```
+  }
+}
 
-    encoded into
+end-frame
+```
 
-    ```
-    Vec : Nat -> Type -> Type
-    Vec = n => a => (label : %Finite {%nil, %cons}) >< match label {
-        when %nil  : 0 =!= n
-        when %cons : (n' : Nat) >< a >< Vec A n' >< {(S n') =%= n}
-    }
-    Nil : {a : Type} -> Vec 0 a
-    Nil = a => (%nil, %refl 0)
-    Cons : {a : Type} -> {n : Nat} -> a -> Vec n a -> Vec (S n) a
-    Cons = a => n => car => cdr => (%cons, n, car, cdr, %refl (S n))
-    ```
+The **case tree** is defined as:
 
-    1. Can we eliminate some of the terms, like the Cons' *n* and the equality term?
-
-6. Applications : `x y` for explicit Pi, `x @y` for implicit Pi.
-
-7. Records are encoded into Sigmas.
-
-8. Recursive terms must be introduced explicitly.
+```idris
+-- tn for binding type; tm for term type
+data CaseTree tn tm where
+    Simply : tm -> CaseTree tn tm
+    Intro : Plict -> tn -> tm -> CaseTree tn tm -> CaseTree tn tm
+    Split : Plict -> tn -> tm -> -- plicity, binder, parameter type
+        List (ConPattern tn , CaseTree tn tm) -> -- branches
+        CaseTree tn tm
+```
 
