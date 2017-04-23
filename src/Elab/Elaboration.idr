@@ -236,7 +236,7 @@ where
 	convertArgs [] = (ty, [], CaseMotiveNil ty)
 	convertArgs (NewDeclArg plic x t :: as) = do
 		let (b, plics, mot) = convertArgs as
-		(funHelper plic x t b, plic :: plics, consMotiveHelper x t mot)
+		(piHelper plic x t b, plic :: plics, consMotiveHelper x t mot)
 
 --         Y8Y 8o  0 oYYYo YY8YY 8o  0  o8o   oYYo 8YYYY
 -- ____     0  8Yo 8 %___    0   8Yo 8 8   8 0   " 8___

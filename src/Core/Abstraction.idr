@@ -141,8 +141,8 @@ mutual
 -- 8"""8 8"""  0    8"""  8"""  8""Yo `"""p
 -- 0   0 8oooo 8ooo 0     8oooo 0   0 YoooY
 
-funHelper : Plict -> String -> Term -> Term -> Term
-funHelper plic x a b = Pi plic a (scope [x] b)
+piHelper : Plict -> String -> Term -> Term -> Term
+piHelper plic x a b = Pi plic a (scope [x] b)
 
 lamHelper : Plict -> String -> Term -> Term
 lamHelper plic x b = Lam plic (scope [x] b)

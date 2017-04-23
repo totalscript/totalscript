@@ -234,10 +234,10 @@ mutual
 			= "(" ++ unwords (names sc) ++ " : " ++ show arg ++ ") || "
 				++ show (descope (Var . Name) sc)
 
--- 8888_ 8YYYY  oYYo 0     o8o  8YYYo YY8YY
--- 0   0 8___  0   " 0    8   8 8___P   0
--- 0   0 8"""  0   , 0    8YYY8 8""Yo   0
--- 8oooY 8oooo  YooY 8ooo 0   0 0   0   0
+-- 8888_ 8YYYY  oYYo 0     o8o  8YYYo  oYYo
+-- 0   0 8___  0   " 0    8   8 8___P 0  __
+-- 0   0 8"""  0   , 0    8YYY8 8""Yo 0  "8
+-- 8oooY 8oooo  YooY 8ooo 0   0 0   0  YooY
 
 public export
 data DeclArg = NewDeclArg Plict String Term
